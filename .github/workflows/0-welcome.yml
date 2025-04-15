@@ -1,0 +1,58 @@
+name: Step 0, Welcome
+
+# 🚀 This step runs when a new repository is created from the template,
+# or whenever there's a push to the main branch.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write  # Needed to read/write repository files
+
+jobs:
+  get_current_step:
+    name: Check current step number
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - id: get_step
+        run: |
+          echo "current_step=$(cat ./.github/steps/-step.txt)" >> $GITHUB_OUTPUT
+    outputs:
+      current_step: ${{ steps.get_step.outputs.current_step }}
+
+  on_start:
+    name: Initialize course
+    needs: get_current_step
+    if: >-
+      ${{ !github.event.repository.is_template &&
+          needs.get_current_step.outputs.current_step == 0 }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create practice issue
+        run: |
+          gh issue create --title "Getting Started with Issue Search" \
+                          --body "This issue will be used during the course to practice search and notification features!\n\nWe'll refer to this as Issue #1." \
+                          --label "help-wanted" \
+                          --label "documentation"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Advance to Step 1
+        uses: skills/action-update-step@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          from_step: 0
+          to_step: 1
+
